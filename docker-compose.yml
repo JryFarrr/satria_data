@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  nextjs:
+    container_name: nextjs_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+    ports:
+      - "3007:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./dataset:/app/dataset
