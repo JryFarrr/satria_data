@@ -34,29 +34,34 @@ export default function Home() {
         </header>
 
         <DatasetProvider entries={datasetEntries}>
-          <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-            <DatasetVideoCard />
-
-            <div className="flex flex-col gap-4">
-              <DatasetLinks />
-
-              <DatasetMetrics />
-
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,0.58fr)_minmax(0,0.42fr)]">
-                <DatasetCaption />
-                <DatasetHashtags />
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <aside className="lg:w-[420px] lg:flex-shrink-0">
+              <div className="lg:sticky lg:top-20">
+                <DatasetVideoCard />
               </div>
-            </div>
+            </aside>
+
+            <section className="flex flex-1 flex-col gap-6 lg:pl-8">
+              <div className="flex flex-col gap-4">
+                <DatasetLinks />
+
+                <DatasetMetrics />
+
+                <DatasetTopics />
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,0.58fr)_minmax(0,0.42fr)]">
+                  <DatasetCaption />
+                  <DatasetHashtags />
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.45fr)]">
+                <DatasetChapters />
+
+                <DatasetSummary />
+              </div>
+            </section>
           </div>
-
-          <DatasetTopics />
-
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.45fr)]">
-            <DatasetChapters />
-
-            <DatasetSummary />
-          </div>
-
         </DatasetProvider>
       </div>
     </main>

@@ -16,8 +16,11 @@ function streamToWeb(stream: fs.ReadStream): ReadableStream<Uint8Array> {
   });
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
   if (!/^\d+$/.test(id)) {
     return new Response("Invalid dataset id", { status: 400 });
