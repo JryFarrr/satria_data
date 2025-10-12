@@ -6,6 +6,7 @@ import DatasetCaption from "../components/DatasetCaption";
 import DatasetTopics from "../components/DatasetTopics";
 import DatasetSummary from "../components/DatasetSummary";
 import DatasetChapters from "../components/DatasetChapters";
+import { DatasetAnalysisProvider, DatasetAudioAnalysis, DatasetVideoAnalysis } from "../components/DatasetAnalysis";
 import { DatasetProvider } from "../components/DatasetProvider";
 import { getDatasetEntries } from "../lib/dataset";
 
@@ -27,9 +28,6 @@ export default function Home() {
             <h1 className="text-[2.45rem] font-semibold text-[#1f2355]">
               Content Engagement Dashboard
             </h1>
-            <span className="rounded-full bg-white px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 shadow-lg">
-              Update 30/09/2025
-            </span>
           </div>
         </header>
 
@@ -47,8 +45,6 @@ export default function Home() {
 
                 <DatasetMetrics />
 
-                <DatasetTopics />
-
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,0.58fr)_minmax(0,0.42fr)]">
                   <DatasetCaption />
                   <DatasetHashtags />
@@ -60,6 +56,13 @@ export default function Home() {
 
                 <DatasetSummary />
               </div>
+
+              <DatasetAnalysisProvider>
+                <div className="flex flex-col gap-4">
+                  <DatasetVideoAnalysis />
+                  <DatasetAudioAnalysis />
+                </div>
+              </DatasetAnalysisProvider>
             </section>
           </div>
         </DatasetProvider>

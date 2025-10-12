@@ -21,6 +21,7 @@ export type DatasetEntry = {
   summary?: string;
   topics: string[];
   chapters: DatasetChapter[];
+  username?: string;
 };
 
 export type DatasetChapter = {
@@ -52,6 +53,7 @@ type ScrapeJson = {
     taken_at?: string;
     caption?: string;
     hashtags?: HashtagEntry[];
+    username?: string;
   };
 };
 
@@ -146,6 +148,7 @@ export function getDatasetEntries(): DatasetEntry[] {
         caption: scrape?.post?.caption,
         hashtags: hashtagList,
         summary: ringkasan?.ringkasan,
+        username: scrape?.post?.username,
         topics: Array.isArray(ringkasan?.topik)
           ? ringkasan?.topik.filter((topic): topic is string => Boolean(topic && topic.trim())).map((topic) => topic.trim())
           : typeof ringkasan?.topik === "string" && ringkasan.topik.trim() !== ""
