@@ -1,10 +1,27 @@
 'use client';
 
 import Image from "next/image";
+import { useCallback, useEffect, useRef } from "react";
 import { useDataset } from "./DatasetProvider";
 
 export default function DatasetVideoCard() {
-  const { selectedEntry } = useDataset();
+  const { selectedEntry, registerVideoElement } = useDataset();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const handleVideoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      videoRef.current = node;
+      registerVideoElement(node);
+    },
+    [registerVideoElement],
+  );
+
+  useEffect(() => {
+    if (!selectedEntry?.hasVideo) {
+      videoRef.current = null;
+      registerVideoElement(null);
+    }
+  }, [registerVideoElement, selectedEntry]);
 
   return (
     <section className="card flex flex-col gap-4 p-6">
@@ -25,6 +42,7 @@ export default function DatasetVideoCard() {
                 controls
                 className="h-full w-full object-cover"
                 playsInline
+                ref={handleVideoRef}
               />
             ) : (
               <span className="px-4 text-center text-sm font-semibold uppercase text-white">
