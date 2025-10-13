@@ -91,7 +91,15 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
       .then(async (response) => {
         if (!response.ok) {
           const text = await response.text();
-          throw new Error(text || "Gagal memuat analisis");
+          const fallbackMessage =
+            response.status === 504
+              ? "Layanan analisis kehabisan waktu. Coba lagi nanti."
+              : response.status === 502
+                ? "Layanan analisis tidak tersedia."
+                : "Gagal memuat analisis";
+          const message =
+            text && !/^</.test(text.trim()) ? text : fallbackMessage;
+          throw new Error(message);
         }
         return response.json() as Promise<FullAnalysis>;
       })
