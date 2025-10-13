@@ -38,7 +38,7 @@ function DashboardHeader() {
 export default function Home() {
   const datasetEntries = getDatasetEntries();
   return (
-    <main className="min-h-screen bg-[#f1f3ff] py-10">
+    <main className="min-h-screen bg-[#f1f3ff] py-10 px-10">
       <div className="mr-auto flex w-full max-w-screen-xl flex-col gap-6">
         <DatasetProvider entries={datasetEntries}>
           <div className="flex flex-col gap-6 lg:flex-row">
