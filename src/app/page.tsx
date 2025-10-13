@@ -26,9 +26,9 @@ function DashboardHeader() {
           <h1 className="text-[2.45rem] font-semibold text-[#1f2355]">
             Content Engagement Dashboard
           </h1>
-          <span className="rounded-full bg-white px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 shadow-lg">
+          {/* <span className="rounded-full bg-white px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 shadow-lg">
             Update 30/09/2025
-          </span>
+          </span> */}
         </div>
       </header>
     </div>
@@ -38,8 +38,8 @@ function DashboardHeader() {
 export default function Home() {
   const datasetEntries = getDatasetEntries();
   return (
-    <main className="min-h-screen bg-[#f1f3ff] px-6 py-10 md:px-10 lg:px-16">
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6">
+    <main className="min-h-screen bg-[#f1f3ff] py-10">
+      <div className="mr-auto flex w-full max-w-screen-xl flex-col gap-6">
         <DatasetProvider entries={datasetEntries}>
           <div className="flex flex-col gap-6 lg:flex-row">
             <aside className="lg:w-[420px] lg:flex-shrink-0">
@@ -49,7 +49,7 @@ export default function Home() {
               </div>
             </aside>
 
-            <section className="flex flex-1 flex-col gap-6 lg:pl-8">
+            <section className="flex flex-1 flex-col gap-6">
               <div className="flex flex-col gap-4">
                 <DatasetLinks />
 
