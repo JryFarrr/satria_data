@@ -50,6 +50,9 @@ const INITIAL_STATE: AnalysisState = {
   error: null,
 };
 
+const ANALYSIS_RETRY_DELAYS_MS = [1500, 3000];
+const ANALYSIS_RETRYABLE_STATUS = new Set([502, 504]);
+
 export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderProps) {
   const { selectedEntry } = useDataset();
   const [state, setState] = useState<AnalysisState>(INITIAL_STATE);
@@ -82,49 +85,121 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
       error: null,
     });
 
-    fetch(`/api/analysis/${cacheKey}`, {
-      signal: controller.signal,
-      headers: {
-        accept: "application/json",
-      },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const text = await response.text();
-          const fallbackMessage =
-            response.status === 504
-              ? "Layanan analisis kehabisan waktu. Coba lagi nanti."
-              : response.status === 502
-                ? "Layanan analisis tidak tersedia."
-                : "Gagal memuat analisis";
-          const message =
-            text && !/^</.test(text.trim()) ? text : fallbackMessage;
-          throw new Error(message);
-        }
-        return response.json() as Promise<FullAnalysis>;
-      })
-      .then((data) => {
-        if (cancelled) {
-          return;
-        }
-        cacheRef.current.set(cacheKey, data);
-        setState({
-          analysis: data,
-          loading: false,
-          error: null,
-        });
-      })
-      .catch((error) => {
-        if (cancelled || error.name === "AbortError") {
-          return;
-        }
-        console.error("Failed to fetch analysis:", error);
-        setState({
-          analysis: null,
-          loading: false,
-          error: error instanceof Error ? error.message : "Tidak dapat memuat analisis",
-        });
+    const maxAttempts = ANALYSIS_RETRY_DELAYS_MS.length + 1;
+
+    const delay = (ms: number) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, ms);
       });
+
+    const fetchAnalysis = async () => {
+      let attempt = 0;
+      while (attempt < maxAttempts && !cancelled) {
+        try {
+          const response = await fetch(`/api/analysis/${cacheKey}`, {
+            signal: controller.signal,
+            headers: {
+              accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            const text = await response.text();
+            const fallbackMessage =
+              response.status === 504
+                ? "Layanan analisis kehabisan waktu. Coba lagi nanti."
+                : response.status === 502
+                  ? "Layanan analisis tidak tersedia."
+                  : "Gagal memuat analisis";
+            const message =
+              text && !/^</.test(text.trim()) ? text : fallbackMessage;
+
+            const error = new Error(message) as Error & { status?: number };
+            error.status = response.status;
+
+            const shouldRetry =
+              attempt < maxAttempts - 1 &&
+              ANALYSIS_RETRYABLE_STATUS.has(response.status);
+
+            if (shouldRetry) {
+              attempt += 1;
+              const waitMs =
+                ANALYSIS_RETRY_DELAYS_MS[attempt - 1] ??
+                ANALYSIS_RETRY_DELAYS_MS[
+                  ANALYSIS_RETRY_DELAYS_MS.length - 1
+                ] ??
+                2000;
+              await delay(waitMs);
+              if (cancelled || controller.signal.aborted) {
+                return;
+              }
+              continue;
+            }
+
+            throw error;
+          }
+
+          const data = (await response.json()) as FullAnalysis;
+
+          if (cancelled) {
+            return;
+          }
+
+          cacheRef.current.set(cacheKey, data);
+          setState({
+            analysis: data,
+            loading: false,
+            error: null,
+          });
+          return;
+        } catch (rawError) {
+          if (cancelled || controller.signal.aborted) {
+            return;
+          }
+
+          const error =
+            rawError instanceof Error
+              ? rawError
+              : new Error("Tidak dapat memuat analisis");
+
+          const status =
+            typeof (error as { status?: number }).status === "number"
+              ? (error as { status?: number }).status
+              : undefined;
+
+          const shouldRetry =
+            attempt < maxAttempts - 1 &&
+            (status === undefined ||
+              ANALYSIS_RETRYABLE_STATUS.has(status));
+
+          if (shouldRetry) {
+            attempt += 1;
+            const waitMs =
+              ANALYSIS_RETRY_DELAYS_MS[attempt - 1] ??
+              ANALYSIS_RETRY_DELAYS_MS[ANALYSIS_RETRY_DELAYS_MS.length - 1] ??
+              2000;
+            await delay(waitMs);
+            if (cancelled || controller.signal.aborted) {
+              return;
+            }
+            continue;
+          }
+
+          console.error("Failed to fetch analysis:", error);
+          setState({
+            analysis: null,
+            loading: false,
+            error:
+              error instanceof Error && error.message
+                ? error.message
+                : "Tidak dapat memuat analisis",
+          });
+          return;
+        }
+      }
+    };
+
+    void fetchAnalysis();
 
     return () => {
       cancelled = true;

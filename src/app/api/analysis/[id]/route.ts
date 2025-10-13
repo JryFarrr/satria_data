@@ -1,6 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
 const datasetRoot = path.join(process.cwd(), "dataset");
 const DEFAULT_SERVICE_URL = "http://localhost:8000";
 
@@ -62,6 +66,7 @@ export async function GET(_request: Request, context: RouteContext) {
         accept: "application/json",
       },
       body: formData,
+      cache: "no-store",
     });
   } catch (error) {
     console.error("Failed to reach analysis service:", error);

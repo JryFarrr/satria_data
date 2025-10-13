@@ -1,3 +1,4 @@
+import DashboardHeader from "../components/DashboardHeader";
 import DatasetLinks from "../components/DatasetLinks";
 import DatasetVideoCard from "../components/DatasetVideoCard";
 import DatasetMetrics from "../components/DatasetMetrics";
@@ -6,34 +7,13 @@ import DatasetCaption from "../components/DatasetCaption";
 import DatasetTopics from "../components/DatasetTopics";
 import DatasetSummary from "../components/DatasetSummary";
 import DatasetChapters from "../components/DatasetChapters";
-import { DatasetAnalysisProvider, DatasetAudioAnalysis, DatasetVideoAnalysis } from "../components/DatasetAnalysis";
+import {
+  DatasetAnalysisProvider,
+  DatasetAudioAnalysis,
+  DatasetVideoAnalysis,
+} from "../components/DatasetAnalysis";
 import { DatasetProvider } from "../components/DatasetProvider";
 import { getDatasetEntries } from "../lib/dataset";
-
-function DashboardHeader() {
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex h-[14px] w-60 overflow-hidden rounded-full lg:w-full">
-        <div className="w-1/3 bg-[#f4b400]" />
-        <div className="w-1/3 bg-[#1766ff]" />
-        <div className="w-1/3 bg-[#1f2c6d]" />
-      </div>
-      <header className="space-y-2 text-center lg:text-left">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1766ff]">
-          Analitik Sosial
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-between">
-          <h1 className="text-[2.45rem] font-semibold text-[#1f2355]">
-            Content Engagement Dashboard
-          </h1>
-          {/* <span className="rounded-full bg-white px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 shadow-lg">
-            Update 30/09/2025
-          </span> */}
-        </div>
-      </header>
-    </div>
-  );
-}
 
 export default function Home() {
   const datasetEntries = getDatasetEntries();
