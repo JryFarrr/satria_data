@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useDataset } from "./DatasetProvider";
 import type { DatasetEntry } from "../lib/dataset";
 
@@ -32,6 +32,7 @@ type AnalysisState = {
   analysis: FullAnalysis;
   loading: boolean;
   error: string | null;
+  statusMessage: string | null;
 };
 
 type AnalysisContextValue = AnalysisState & {
@@ -41,17 +42,37 @@ type AnalysisContextValue = AnalysisState & {
 const DatasetAnalysisContext = createContext<AnalysisContextValue | undefined>(undefined);
 
 type DatasetAnalysisProviderProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 const INITIAL_STATE: AnalysisState = {
   analysis: null,
   loading: false,
   error: null,
+  statusMessage: null,
 };
 
-const ANALYSIS_RETRY_DELAYS_MS = [1500, 3000];
+const ANALYSIS_RETRY_DELAYS_MS = [1500, 3000, 6000, 10000, 15000];
+const ANALYSIS_REQUEST_TIMEOUT_MS = 120_000;
 const ANALYSIS_RETRYABLE_STATUS = new Set([502, 504]);
+const ANALYSIS_MAX_RETRY_ATTEMPTS = ANALYSIS_RETRY_DELAYS_MS.length + 1;
+
+function buildRetryStatusMessage(
+  baseMessage: string,
+  attemptIndex: number,
+  maxAttempts: number,
+  status?: number,
+) {
+  const attemptNumber = attemptIndex + 1;
+  const context =
+    status === 504
+      ? "Analisis masih berjalan di layanan backend"
+      : status === 502
+        ? "Backend belum siap merespons"
+        : baseMessage;
+
+  return `${context}. Mencoba lagi (${attemptNumber}/${maxAttempts})...`;
+}
 
 export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderProps) {
   const { selectedEntry } = useDataset();
@@ -72,6 +93,7 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
         analysis: cached,
         loading: false,
         error: null,
+        statusMessage: null,
       });
       return;
     }
@@ -83,9 +105,8 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
       analysis: null,
       loading: true,
       error: null,
+      statusMessage: null,
     });
-
-    const maxAttempts = ANALYSIS_RETRY_DELAYS_MS.length + 1;
 
     const delay = (ms: number) =>
       new Promise((resolve) => {
@@ -93,11 +114,19 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
       });
 
     const fetchAnalysis = async () => {
-      let attempt = 0;
-      while (attempt < maxAttempts && !cancelled) {
+      for (let attempt = 0; attempt < ANALYSIS_MAX_RETRY_ATTEMPTS && !cancelled; attempt += 1) {
+        const attemptController = new AbortController();
+        const handleAbort = () => attemptController.abort();
+        controller.signal.addEventListener("abort", handleAbort);
+        let didTimeout = false;
+        const timeoutId = setTimeout(() => {
+          didTimeout = true;
+          attemptController.abort();
+        }, ANALYSIS_REQUEST_TIMEOUT_MS);
+
         try {
           const response = await fetch(`/api/analysis/${cacheKey}`, {
-            signal: controller.signal,
+            signal: attemptController.signal,
             headers: {
               accept: "application/json",
             },
@@ -118,17 +147,25 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
             error.status = response.status;
 
             const shouldRetry =
-              attempt < maxAttempts - 1 &&
+              attempt < ANALYSIS_MAX_RETRY_ATTEMPTS - 1 &&
               ANALYSIS_RETRYABLE_STATUS.has(response.status);
 
             if (shouldRetry) {
-              attempt += 1;
               const waitMs =
-                ANALYSIS_RETRY_DELAYS_MS[attempt - 1] ??
-                ANALYSIS_RETRY_DELAYS_MS[
-                  ANALYSIS_RETRY_DELAYS_MS.length - 1
-                ] ??
+                ANALYSIS_RETRY_DELAYS_MS[attempt] ??
+                ANALYSIS_RETRY_DELAYS_MS[ANALYSIS_RETRY_DELAYS_MS.length - 1] ??
                 2000;
+              setState({
+                analysis: null,
+                loading: true,
+                error: null,
+                statusMessage: buildRetryStatusMessage(
+                  message,
+                  attempt + 1,
+                  ANALYSIS_MAX_RETRY_ATTEMPTS,
+                  response.status,
+                ),
+              });
               await delay(waitMs);
               if (cancelled || controller.signal.aborted) {
                 return;
@@ -150,6 +187,7 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
             analysis: data,
             loading: false,
             error: null,
+            statusMessage: null,
           });
           return;
         } catch (rawError) {
@@ -157,10 +195,15 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
             return;
           }
 
-          const error =
+          let error =
             rawError instanceof Error
               ? rawError
               : new Error("Tidak dapat memuat analisis");
+
+          if (didTimeout && !(error as { status?: number }).status) {
+            error = new Error("Layanan analisis tidak merespons dalam batas waktu.");
+            (error as { status?: number }).status = 504;
+          }
 
           const status =
             typeof (error as { status?: number }).status === "number"
@@ -168,16 +211,30 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
               : undefined;
 
           const shouldRetry =
-            attempt < maxAttempts - 1 &&
+            attempt < ANALYSIS_MAX_RETRY_ATTEMPTS - 1 &&
             (status === undefined ||
               ANALYSIS_RETRYABLE_STATUS.has(status));
 
           if (shouldRetry) {
-            attempt += 1;
             const waitMs =
-              ANALYSIS_RETRY_DELAYS_MS[attempt - 1] ??
+              ANALYSIS_RETRY_DELAYS_MS[attempt] ??
               ANALYSIS_RETRY_DELAYS_MS[ANALYSIS_RETRY_DELAYS_MS.length - 1] ??
               2000;
+            const message =
+              error instanceof Error && error.message
+                ? error.message
+                : "Tidak dapat memuat analisis";
+            setState({
+              analysis: null,
+              loading: true,
+              error: null,
+              statusMessage: buildRetryStatusMessage(
+                message,
+                attempt + 1,
+                ANALYSIS_MAX_RETRY_ATTEMPTS,
+                status,
+              ),
+            });
             await delay(waitMs);
             if (cancelled || controller.signal.aborted) {
               return;
@@ -193,8 +250,13 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
               error instanceof Error && error.message
                 ? error.message
                 : "Tidak dapat memuat analisis",
+            statusMessage: null,
           });
           return;
+        }
+        finally {
+          clearTimeout(timeoutId);
+          controller.signal.removeEventListener("abort", handleAbort);
         }
       }
     };
@@ -240,8 +302,13 @@ function formatSceneCutCount(value?: number[] | null) {
   return new Intl.NumberFormat("id-ID").format(value.length);
 }
 
-function AnalysisLoadingState({ label }: { label: string }) {
-  return <p className="text-sm text-slate-500">Memuat {label}...</p>;
+function AnalysisLoadingState({ label, message }: { label: string; message?: string | null }) {
+  return (
+    <div className="flex flex-col gap-1 text-sm text-slate-500">
+      <p>Memuat {label}...</p>
+      {message ? <p className="text-xs text-slate-400">{message}</p> : null}
+    </div>
+  );
 }
 
 function AnalysisErrorState({ message }: { message: string }) {
@@ -312,7 +379,7 @@ function AnalysisHtmlEmbed({ html, className }: AnalysisHtmlEmbedProps) {
 }
 
 export function DatasetVideoAnalysis() {
-  const { analysis, loading, error, selectedEntry } = useDatasetAnalysis();
+  const { analysis, loading, error, selectedEntry, statusMessage } = useDatasetAnalysis();
   const visual = analysis?.visual;
 
   return (
@@ -324,7 +391,7 @@ export function DatasetVideoAnalysis() {
       {!selectedEntry ? (
         <EmptyAnalysisState label="Analisis visual" />
       ) : loading ? (
-        <AnalysisLoadingState label="analisis visual" />
+        <AnalysisLoadingState label="analisis visual" message={statusMessage} />
       ) : error ? (
         <AnalysisErrorState message={error} />
       ) : !visual ? (
@@ -363,7 +430,7 @@ export function DatasetVideoAnalysis() {
 }
 
 export function DatasetAudioAnalysis() {
-  const { analysis, loading, error, selectedEntry } = useDatasetAnalysis();
+  const { analysis, loading, error, selectedEntry, statusMessage } = useDatasetAnalysis();
   const audio = analysis?.audio;
 
   return (
@@ -375,7 +442,7 @@ export function DatasetAudioAnalysis() {
       {!selectedEntry ? (
         <EmptyAnalysisState label="Analisis audio" />
       ) : loading ? (
-        <AnalysisLoadingState label="analisis audio" />
+        <AnalysisLoadingState label="analisis audio" message={statusMessage} />
       ) : error ? (
         <AnalysisErrorState message={error} />
       ) : !audio ? (

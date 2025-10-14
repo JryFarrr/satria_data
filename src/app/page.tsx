@@ -16,16 +16,17 @@ import { DatasetProvider } from "../components/DatasetProvider";
 import { getDatasetEntries } from "../lib/dataset";
 
 type HomePageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     id?: string;
-  };
+  }>;
 };
 
-export default function Home({ searchParams }: HomePageProps) {
+export default async function Home({ searchParams }: HomePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const datasetEntries = getDatasetEntries();
   const parsedSelectedId =
-    typeof searchParams?.id === "string"
-      ? Number.parseInt(searchParams.id, 10)
+    typeof resolvedSearchParams?.id === "string"
+      ? Number.parseInt(resolvedSearchParams.id, 10)
       : Number.NaN;
   const initialSelectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : null;
 

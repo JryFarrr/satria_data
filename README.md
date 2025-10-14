@@ -7,6 +7,7 @@ This repository houses a [Next.js](https://nextjs.org) dashboard for exploring s
   - Sheet 1 (“Dashboard Insight Strategis”) menampilkan detail video yang dipilih, metrik performa, caption/hashtag, ringkasan, dan analisis audio/video.
   - Sheet 2 (“Framework Video High-Engagement”) menyajikan tabel konten dan visualisasi yang dapat dipakai untuk menelusuri konten berkinerja tinggi; klik baris tabel akan membuka Sheet 1 dengan video relevan.
   - Navigasi antar sheet, sort/filter sederhana, serta integrasi video player untuk melihat konten terkait.
+- **Integrasi backend**: endpoint `src/app/api/*` meneruskan request ke layanan FastAPI (lihat `../backend/README.md`) untuk menjalankan analisis video/audio dan visualisasi dataset secara dinamis.
 - **Stack**: Next.js (App Router) + TypeScript, Tailwind CSS, React Context untuk state dataset, data lokal yang di-load dari dataset Kaggle.
 
 ## Arsitektur Data
@@ -35,8 +36,9 @@ flowchart TD
 ## Konfigurasi
 
 - Port default Next.js: `3000`. Ubah dengan environment variable `PORT` saat menjalankan (`PORT=4000 npm run dev`).
+- Set `ANALYSIS_SERVICE_URL` agar proxy route Next.js tahu alamat backend FastAPI (default: `http://localhost:8000`).
 - Sesuaikan environment variable Next.js lainnya (mis. `NEXT_TELEMETRY_DISABLED=1`) sesuai kebutuhan.
-- Aplikasi tidak memerlukan backend tambahan; seluruh data dilayani secara lokal melalui file statis pada folder `dataset`.
+- Dataset dasar tetap di-load dari folder `dataset`, sementara analisis lanjutan akan meminta backend sesuai kebutuhan user.
 
 ## Dataset Setup
 
@@ -54,14 +56,20 @@ flowchart TD
 
 ## Menjalankan Secara Lokal
 
-Install dependensi kemudian jalankan server Next.js dalam mode pengembangan:
+1. **Jalankan backend** (lihat panduan lengkap di `../backend/README.md`):
+   ```bash
+   cd ../backend
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+   atau gunakan `docker compose up --build`.
+2. **Kembali ke frontend**, instal dependensi, dan nyalakan server Next.js dalam mode pengembangan:
+   ```bash
+   cd ../frontend
+   npm install
+   ANALYSIS_SERVICE_URL=http://localhost:8000 npm run dev
+   ```
 
-```bash
-npm install
-npm run dev
-```
-
-Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000).
+Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000). Jika backend berjalan di host/port berbeda, sesuaikan `ANALYSIS_SERVICE_URL`.
 
 ## Menjalankan dengan Docker Compose
 
@@ -71,4 +79,4 @@ Jika Anda ingin menjalankan melalui kontainer:
 docker-compose up -d --build
 ```
 
-Perintah di atas akan membuat image dan menyalakan layanan dalam mode background. Gunakan `docker-compose down` untuk mematikannya.
+Perintah di atas akan membuat image dan menyalakan layanan frontend dalam mode background. Pastikan backend juga berjalan (via `docker compose up` di folder `../backend` atau orchestrator lain). Gunakan `docker-compose down` untuk mematikannya.
