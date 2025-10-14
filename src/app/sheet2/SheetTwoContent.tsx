@@ -13,6 +13,7 @@ import AnalyticsTable, {
   AnalyticsTableRow,
 } from "./components/AnalyticsTable";
 import AnalyticsVisualizations from "./components/AnalyticsVisualizations";
+import AnalyticsPieChart from "./components/AnalyticsPieChart";
 
 type FetchStatus = "idle" | "loading" | "error" | "success";
 
@@ -150,14 +151,18 @@ export default function SheetTwoContent({ entries }: SheetTwoContentProps) {
             </aside>
 
             <section className="flex flex-1 flex-col gap-6 lg:-mr-6 xl:-mr-12">
-              <AnalyticsTable
-                rows={sortedRows}
-                rawRows={rows}
-                sortConfig={sortConfig}
-                onSortChange={setSortConfig}
-                status={status}
-                errorMessage={errorMessage}
-              />
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                <AnalyticsTable
+                  rows={sortedRows}
+                  rawRows={rows}
+                  sortConfig={sortConfig}
+                  onSortChange={setSortConfig}
+                  status={status}
+                  errorMessage={errorMessage}
+                />
+
+                <AnalyticsPieChart filters={appliedFilters} />
+              </div>
 
               <AnalyticsVisualizations filters={appliedFilters} />
 

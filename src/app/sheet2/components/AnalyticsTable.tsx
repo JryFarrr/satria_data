@@ -118,9 +118,12 @@ export default function AnalyticsTable({
 
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white/90 p-10 text-sm text-slate-500">
-        Data tidak tersedia untuk rentang tanggal dan metric yang dipilih.
-      </div>
+      <section className="card flex flex-col gap-4 p-6">
+        <p className="card-title text-[#1766ff]">Konten Terpilih</p>
+        <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-[#f7f8ff] px-6 py-12 text-sm text-[#54608d]">
+          Data tidak tersedia untuk rentang tanggal dan metric yang dipilih.
+        </div>
+      </section>
     );
   }
 

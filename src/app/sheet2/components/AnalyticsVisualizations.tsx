@@ -85,18 +85,15 @@ type PlotCardProps = {
 };
 
 const PlotCard = memo(function PlotCard({ plotKey, entry }: PlotCardProps) {
+  const heading = entry.title?.trim() || plotKey.replace(/_/g, " ");
+
   return (
     <section className="card flex flex-col gap-4 p-5">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <p className="card-title text-[#1766ff]">
-            {plotKey.replace(/_/g, " ")}
-          </p>
-          {entry.title ? (
-            <h3 className="text-lg font-semibold text-[#1f2a55]">
-              {entry.title}
-            </h3>
-          ) : null}
+          <h3 className="text-lg font-semibold text-[#1f2a55]">
+            {heading}
+          </h3>
         </div>
       </div>
       <div className="overflow-hidden rounded-2xl border border-[#e1e5ff] bg-white">
@@ -203,7 +200,7 @@ export default function AnalyticsVisualizations({
 
   if (status === "loading" || status === "idle") {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <section className="card flex flex-col gap-4 p-6">
           <div className="flex items-center justify-center rounded-2xl border border-dashed border-[#b7c4ff] bg-[#f6f8ff] px-6 py-16 text-sm text-[#54608d]">
             Mengambil visualisasi terbaru dari layanan analitik…
@@ -215,7 +212,7 @@ export default function AnalyticsVisualizations({
 
   if (status === "error") {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <section className="card flex flex-col gap-4 p-6">
           <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
             {errorMessage ??
@@ -228,7 +225,7 @@ export default function AnalyticsVisualizations({
 
   if (plots.length === 0) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <section className="card flex flex-col gap-4 p-6">
           <div className="rounded-2xl border border-slate-200 bg-[#f7f8ff] px-6 py-12 text-sm text-[#54608d]">
             Layanan analitik belum mengembalikan visualisasi untuk filter yang
@@ -240,7 +237,7 @@ export default function AnalyticsVisualizations({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid gap-6 md:grid-cols-2">
       {plots.map(({ key, entry }) => (
         <PlotCard key={key} plotKey={key} entry={entry} />
       ))}
