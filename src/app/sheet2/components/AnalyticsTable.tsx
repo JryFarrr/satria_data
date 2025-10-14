@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo } from "react";
+import type { KeyboardEvent } from "react";
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 export type AnalyticsTableRow = {
   id: number;
@@ -16,9 +18,9 @@ export type AnalyticsSortConfig = {
   direction: "asc" | "desc";
 };
 
-const MAX_VISIBLE_ROWS = 10;
 const HEADER_HEIGHT_PX = 44;
 const ROW_HEIGHT_PX = 56;
+const MAX_VISIBLE_ROWS = 9;
 
 type AnalyticsTableProps = {
   rows: AnalyticsTableRow[];
@@ -90,6 +92,7 @@ export default function AnalyticsTable({
   status,
   errorMessage,
 }: AnalyticsTableProps) {
+  const router = useRouter();
   const hasData = rawRows.length > 0;
   const scrollHeight =
     hasData && rows.length > MAX_VISIBLE_ROWS
@@ -99,6 +102,23 @@ export default function AnalyticsTable({
   const sortIndicator = useMemo(() => {
     return sortConfig.direction === "asc" ? "↑" : "↓";
   }, [sortConfig.direction]);
+
+  const handleRowNavigation = useCallback(
+    (id: number) => {
+      router.push(`/?id=${id}`);
+    },
+    [router],
+  );
+
+  const handleRowKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTableRowElement>, id: number) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleRowNavigation(id);
+      }
+    },
+    [handleRowNavigation],
+  );
 
   if (status === "error") {
     return (
@@ -141,7 +161,7 @@ export default function AnalyticsTable({
       </div>
       <div className="overflow-x-auto">
         <div
-          className={scrollHeight ? "overflow-y-auto" : ""}
+          className={scrollHeight ? "overflow-y-auto" : undefined}
           style={scrollHeight ? { maxHeight: `${scrollHeight}px` } : undefined}
         >
           <table className="min-w-full text-sm text-[#202b55]">
@@ -183,7 +203,11 @@ export default function AnalyticsTable({
               {rows.map((row, rowIndex) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-[#edf1ff] ${rowIndex % 2 === 0 ? "bg-white" : "bg-[#f7faff]"} hover:bg-[#eef3ff]`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleRowNavigation(row.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, row.id)}
+                  className={`cursor-pointer border-b border-[#edf1ff] ${rowIndex % 2 === 0 ? "bg-white" : "bg-[#f7faff]"} hover:bg-[#eef3ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1766ff]/60`}
                 >
                   {columns.map((column) => {
                     const alignment =

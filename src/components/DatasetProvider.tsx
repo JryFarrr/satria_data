@@ -17,10 +17,13 @@ const DatasetContext = createContext<DatasetContextValue | undefined>(undefined)
 type DatasetProviderProps = {
   entries: DatasetEntry[];
   children: React.ReactNode;
+  initialSelectedId?: number | null;
 };
 
-export function DatasetProvider({ entries, children }: DatasetProviderProps) {
-  const [selectedId, setSelectedId] = useState<number | null>(entries[0]?.id ?? null);
+export function DatasetProvider({ entries, children, initialSelectedId }: DatasetProviderProps) {
+  const [selectedId, setSelectedId] = useState<number | null>(
+    initialSelectedId ?? entries[0]?.id ?? null,
+  );
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
   const metadataListenerRef = useRef<((event: Event) => void) | null>(null);
@@ -119,10 +122,20 @@ export function DatasetProvider({ entries, children }: DatasetProviderProps) {
       return;
     }
 
+    if (initialSelectedId !== undefined && initialSelectedId !== null) {
+      const matchingEntry = entries.find((entry) => entry.id === initialSelectedId);
+      if (matchingEntry) {
+        setSelectedId((previous) =>
+          previous === matchingEntry.id ? previous : matchingEntry.id,
+        );
+        return;
+      }
+    }
+
     if (selectedId === null || !entries.some((entry) => entry.id === selectedId)) {
       setSelectedId(entries[0].id);
     }
-  }, [entries, selectedId]);
+  }, [entries, initialSelectedId, selectedId]);
 
   const value = useMemo<DatasetContextValue>(() => {
     const selectedEntry = selectedId !== null ? entries.find((entry) => entry.id === selectedId) ?? null : null;
