@@ -45,9 +45,9 @@ export default function DashboardHeader() {
         <div className="w-1/3 bg-[#1f2c6d]" />
       </div>
       <header className="space-y-2 text-center lg:text-left">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1766ff]">
+        {/* <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1766ff]">
           Analitik Sosial
-        </p>
+        </p> */}
         <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-between">
           <h1 className="text-[2.45rem] font-semibold text-[#1f2355]">
             Content Engagement Dashboard
@@ -59,10 +59,14 @@ export default function DashboardHeader() {
         aria-label="Sheet navigation"
         className="flex flex-wrap items-center gap-2 rounded-full bg-white/70 p-2 shadow-sm backdrop-blur"
       >
-        <SheetNavButton href="/" label="Sheet 1" active={pathname === "/"} />
+        <SheetNavButton
+          href="/"
+          label="Insight Strategis"
+          active={pathname === "/"}
+        />
         <SheetNavButton
           href="/sheet2"
-          label="Sheet 2"
+          label="High-Engagement"
           active={pathname === "/sheet2"}
           hideOnMobile
         />

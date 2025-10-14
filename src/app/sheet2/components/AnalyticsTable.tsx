@@ -16,7 +16,7 @@ export type AnalyticsSortConfig = {
   direction: "asc" | "desc";
 };
 
-const MAX_VISIBLE_ROWS = 5;
+const MAX_VISIBLE_ROWS = 10;
 const HEADER_HEIGHT_PX = 44;
 const ROW_HEIGHT_PX = 56;
 
@@ -134,14 +134,10 @@ export default function AnalyticsTable({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
             Daftar Konten
           </p>
-          <h2 className="text-lg font-semibold leading-tight">Konten Terpilih</h2>
         </div>
         <span className="rounded-full bg-white/20 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white">
           {rawRows.length.toLocaleString("id-ID")} konten
         </span>
-      </div>
-      <div className="border-t border-[#1a459f] bg-[#2754c4] px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
-        Ringkasan Analitik Channel
       </div>
       <div className="overflow-x-auto">
         <div
