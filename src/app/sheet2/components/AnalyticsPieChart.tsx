@@ -156,7 +156,9 @@ export default function AnalyticsPieChart({
   if (status === "loading" || status === "idle") {
     return (
       <section className="card flex flex-col gap-4 p-5">
-        <p className="card-title text-[#1766ff]">Pie Chart Topik</p>
+        <p className="card-title text-[#1766ff]">
+          Distribusi Konten Berdasarkan Topik
+        </p>
         <div className="flex items-center justify-center rounded-2xl border border-dashed border-[#b7c4ff] bg-[#f6f8ff] px-6 py-16 text-sm text-[#54608d]">
           Mengambil data distribusi topik…
         </div>
@@ -167,7 +169,9 @@ export default function AnalyticsPieChart({
   if (status === "error") {
     return (
       <section className="card flex flex-col gap-4 p-5">
-        <p className="card-title text-[#1766ff]">Pie Chart Topik</p>
+        <p className="card-title text-[#1766ff]">
+          Distribusi Konten Berdasarkan Topik
+        </p>
         <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
           {errorMessage ?? "Gagal memuat pie chart. Coba lagi nanti."}
         </div>
@@ -178,7 +182,9 @@ export default function AnalyticsPieChart({
   if (!plotHtml) {
     return (
       <section className="card flex flex-col gap-4 p-5">
-        <p className="card-title text-[#1766ff]">Pie Chart Topik</p>
+        <p className="card-title text-[#1766ff]">
+          Distribusi Konten Berdasarkan Topik
+        </p>
         <div className="rounded-2xl border border-slate-200 bg-[#f7f8ff] px-6 py-12 text-sm text-[#54608d]">
           Visualisasi pie chart belum tersedia untuk rentang tanggal yang
           dipilih.
@@ -189,9 +195,7 @@ export default function AnalyticsPieChart({
 
   return (
     <section className="card flex flex-col gap-4 p-5">
-      <div className="flex flex-col gap-1">
-        <p className="card-title text-[#1766ff]">{title}</p>
-      </div>
+      <p className="card-title text-[#1766ff]">{title}</p>
       <div className="overflow-hidden rounded-2xl border border-[#e1e5ff] bg-white">
         <PieChartHtmlEmbed html={plotHtml} />
       </div>
