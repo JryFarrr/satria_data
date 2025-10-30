@@ -32,7 +32,6 @@ type AnalysisState = {
   analysis: FullAnalysis;
   loading: boolean;
   error: string | null;
-  statusMessage: string | null;
 };
 
 type AnalysisContextValue = AnalysisState & {
@@ -49,30 +48,9 @@ const INITIAL_STATE: AnalysisState = {
   analysis: null,
   loading: false,
   error: null,
-  statusMessage: null,
 };
 
-const ANALYSIS_RETRY_DELAYS_MS = [1500, 3000, 6000, 10000, 15000];
 const ANALYSIS_REQUEST_TIMEOUT_MS = 120_000;
-const ANALYSIS_RETRYABLE_STATUS = new Set([502, 504]);
-const ANALYSIS_MAX_RETRY_ATTEMPTS = ANALYSIS_RETRY_DELAYS_MS.length + 1;
-
-function buildRetryStatusMessage(
-  baseMessage: string,
-  attemptIndex: number,
-  maxAttempts: number,
-  status?: number,
-) {
-  const attemptNumber = attemptIndex + 1;
-  const context =
-    status === 504
-      ? "Analisis masih berjalan di layanan backend"
-      : status === 502
-        ? "Backend belum siap merespons"
-        : baseMessage;
-
-  return `${context}. Mencoba lagi (${attemptNumber}/${maxAttempts})...`;
-}
 
 export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderProps) {
   const { selectedEntry } = useDataset();
@@ -93,7 +71,6 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
         analysis: cached,
         loading: false,
         error: null,
-        statusMessage: null,
       });
       return;
     }
@@ -105,159 +82,77 @@ export function DatasetAnalysisProvider({ children }: DatasetAnalysisProviderPro
       analysis: null,
       loading: true,
       error: null,
-      statusMessage: null,
     });
 
-    const delay = (ms: number) =>
-      new Promise((resolve) => {
-        setTimeout(resolve, ms);
-      });
-
     const fetchAnalysis = async () => {
-      for (let attempt = 0; attempt < ANALYSIS_MAX_RETRY_ATTEMPTS && !cancelled; attempt += 1) {
-        const attemptController = new AbortController();
-        const handleAbort = () => attemptController.abort();
-        controller.signal.addEventListener("abort", handleAbort);
-        let didTimeout = false;
-        const timeoutId = setTimeout(() => {
-          didTimeout = true;
-          attemptController.abort();
-        }, ANALYSIS_REQUEST_TIMEOUT_MS);
+      const attemptController = new AbortController();
+      const handleAbort = () => attemptController.abort();
+      controller.signal.addEventListener("abort", handleAbort);
 
-        try {
-          const response = await fetch(`/api/analysis/${cacheKey}`, {
-            signal: attemptController.signal,
-            headers: {
-              accept: "application/json",
-            },
-          });
+      let didTimeout = false;
+      const timeoutId = setTimeout(() => {
+        didTimeout = true;
+        attemptController.abort();
+      }, ANALYSIS_REQUEST_TIMEOUT_MS);
 
-          if (!response.ok) {
-            const text = await response.text();
-            const fallbackMessage =
-              response.status === 504
-                ? "Layanan analisis kehabisan waktu. Coba lagi nanti."
-                : response.status === 502
-                  ? "Layanan analisis tidak tersedia."
-                  : "Gagal memuat analisis";
-            const message =
-              text && !/^</.test(text.trim()) ? text : fallbackMessage;
+      try {
+        const response = await fetch(`/api/analysis/${cacheKey}`, {
+          signal: attemptController.signal,
+          headers: {
+            accept: "application/json",
+          },
+        });
 
-            const error = new Error(message) as Error & { status?: number };
-            error.status = response.status;
+        if (!response.ok) {
+          const text = await response.text();
+          const fallbackMessage =
+            response.status === 504
+              ? "Layanan analisis kehabisan waktu. Coba lagi nanti."
+              : response.status === 502
+                ? "Layanan analisis tidak tersedia."
+                : "Gagal memuat analisis";
 
-            const shouldRetry =
-              attempt < ANALYSIS_MAX_RETRY_ATTEMPTS - 1 &&
-              ANALYSIS_RETRYABLE_STATUS.has(response.status);
+          const message =
+            text && !/^</.test(text.trim()) ? text : fallbackMessage;
 
-            if (shouldRetry) {
-              const waitMs =
-                ANALYSIS_RETRY_DELAYS_MS[attempt] ??
-                ANALYSIS_RETRY_DELAYS_MS[ANALYSIS_RETRY_DELAYS_MS.length - 1] ??
-                2000;
-              setState({
-                analysis: null,
-                loading: true,
-                error: null,
-                statusMessage: buildRetryStatusMessage(
-                  message,
-                  attempt + 1,
-                  ANALYSIS_MAX_RETRY_ATTEMPTS,
-                  response.status,
-                ),
-              });
-              await delay(waitMs);
-              if (cancelled || controller.signal.aborted) {
-                return;
-              }
-              continue;
-            }
+          throw new Error(message);
+        }
 
-            throw error;
-          }
+        const data = (await response.json()) as FullAnalysis;
 
-          const data = (await response.json()) as FullAnalysis;
-
-          if (cancelled) {
-            return;
-          }
-
-          cacheRef.current.set(cacheKey, data);
-          setState({
-            analysis: data,
-            loading: false,
-            error: null,
-            statusMessage: null,
-          });
-          return;
-        } catch (rawError) {
-          if (cancelled || controller.signal.aborted) {
-            return;
-          }
-
-          let error =
-            rawError instanceof Error
-              ? rawError
-              : new Error("Tidak dapat memuat analisis");
-
-          if (didTimeout && !(error as { status?: number }).status) {
-            error = new Error("Layanan analisis tidak merespons dalam batas waktu.");
-            (error as { status?: number }).status = 504;
-          }
-
-          const status =
-            typeof (error as { status?: number }).status === "number"
-              ? (error as { status?: number }).status
-              : undefined;
-
-          const shouldRetry =
-            attempt < ANALYSIS_MAX_RETRY_ATTEMPTS - 1 &&
-            (status === undefined ||
-              ANALYSIS_RETRYABLE_STATUS.has(status));
-
-          if (shouldRetry) {
-            const waitMs =
-              ANALYSIS_RETRY_DELAYS_MS[attempt] ??
-              ANALYSIS_RETRY_DELAYS_MS[ANALYSIS_RETRY_DELAYS_MS.length - 1] ??
-              2000;
-            const message =
-              error instanceof Error && error.message
-                ? error.message
-                : "Tidak dapat memuat analisis";
-            setState({
-              analysis: null,
-              loading: true,
-              error: null,
-              statusMessage: buildRetryStatusMessage(
-                message,
-                attempt + 1,
-                ANALYSIS_MAX_RETRY_ATTEMPTS,
-                status,
-              ),
-            });
-            await delay(waitMs);
-            if (cancelled || controller.signal.aborted) {
-              return;
-            }
-            continue;
-          }
-
-          console.error("Failed to fetch analysis:", error);
-          setState({
-            analysis: null,
-            loading: false,
-            error:
-              error instanceof Error && error.message
-                ? error.message
-                : "Tidak dapat memuat analisis",
-            statusMessage: null,
-          });
+        if (cancelled) {
           return;
         }
-        finally {
-          clearTimeout(timeoutId);
-          controller.signal.removeEventListener("abort", handleAbort);
+
+        cacheRef.current.set(cacheKey, data);
+        setState({
+          analysis: data,
+          loading: false,
+          error: null,
+        });
+      } catch (rawError) {
+        if (cancelled || controller.signal.aborted) {
+          return;
         }
+
+        let error =
+          rawError instanceof Error
+            ? rawError
+            : new Error("Tidak dapat memuat analisis");
+
+        if (didTimeout) {
+          error = new Error("Layanan analisis tidak merespons dalam batas waktu.");
+        }
+
+        console.error("Failed to fetch analysis:", error);
+        setState({
+          analysis: null,
+          loading: false,
+          error: error.message || "Tidak dapat memuat analisis",
+        });
+      } finally {
+        clearTimeout(timeoutId);
+        controller.signal.removeEventListener("abort", handleAbort);
       }
     };
 
@@ -302,13 +197,8 @@ function formatSceneCutCount(value?: number[] | null) {
   return new Intl.NumberFormat("id-ID").format(value.length);
 }
 
-function AnalysisLoadingState({ label, message }: { label: string; message?: string | null }) {
-  return (
-    <div className="flex flex-col gap-1 text-sm text-slate-500">
-      <p>Memuat {label}...</p>
-      {message ? <p className="text-xs text-slate-400">{message}</p> : null}
-    </div>
-  );
+function AnalysisLoadingState({ label }: { label: string }) {
+  return <p className="text-sm text-slate-500">Memuat {label}...</p>;
 }
 
 function AnalysisErrorState({ message }: { message: string }) {
@@ -379,7 +269,7 @@ function AnalysisHtmlEmbed({ html, className }: AnalysisHtmlEmbedProps) {
 }
 
 export function DatasetVideoAnalysis() {
-  const { analysis, loading, error, selectedEntry, statusMessage } = useDatasetAnalysis();
+  const { analysis, loading, error, selectedEntry } = useDatasetAnalysis();
   const visual = analysis?.visual;
 
   return (
@@ -391,7 +281,7 @@ export function DatasetVideoAnalysis() {
       {!selectedEntry ? (
         <EmptyAnalysisState label="Analisis visual" />
       ) : loading ? (
-        <AnalysisLoadingState label="analisis visual" message={statusMessage} />
+        <AnalysisLoadingState label="analisis visual" />
       ) : error ? (
         <AnalysisErrorState message={error} />
       ) : !visual ? (
@@ -430,7 +320,7 @@ export function DatasetVideoAnalysis() {
 }
 
 export function DatasetAudioAnalysis() {
-  const { analysis, loading, error, selectedEntry, statusMessage } = useDatasetAnalysis();
+  const { analysis, loading, error, selectedEntry } = useDatasetAnalysis();
   const audio = analysis?.audio;
 
   return (
@@ -442,7 +332,7 @@ export function DatasetAudioAnalysis() {
       {!selectedEntry ? (
         <EmptyAnalysisState label="Analisis audio" />
       ) : loading ? (
-        <AnalysisLoadingState label="analisis audio" message={statusMessage} />
+        <AnalysisLoadingState label="analisis audio" />
       ) : error ? (
         <AnalysisErrorState message={error} />
       ) : !audio ? (

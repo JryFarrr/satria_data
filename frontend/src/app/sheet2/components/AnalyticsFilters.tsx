@@ -16,7 +16,7 @@ export type AnalyticsFiltersState = {
 const metricOptions = [
   { value: "view", label: "View" },
   { value: "like", label: "Persentase Like" },
-  { value: "pc", label: "PC1 Scaled" },
+  { value: "pc", label: "CPI" },
 ];
 
 function toDateTimeLocalInput(date: Date) {

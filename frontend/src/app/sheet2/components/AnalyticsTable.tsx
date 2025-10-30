@@ -67,7 +67,7 @@ const columns: Array<{
   },
   {
     key: "pc1_scaled",
-    label: "PC1 Scaled",
+    label: "CPI",
     align: "right",
     format: (value) =>
       typeof value === "number" ? value.toFixed(2).replace(".", ",") : String(value),
