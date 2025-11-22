@@ -1,11 +1,3 @@
-## Satria Data Penyisihan 2025
-
-[Video Sentiment Classification]
-Metode : Ekstrak Audio (Whisper) => Data Preprocessing => Sentence Transformers => Logistic Regression => Hyperparameter Tuning (Optuna)
-Untuk notebook modelling dan analisis data bisa diliat di link berikut
-
-
-
 ## Satria Data Semifinal 2025
 
 Repositori ini berisi dua komponen utama:
