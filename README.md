@@ -21,3 +21,6 @@ Repositori ini berisi dua komponen utama:
 ```
 
 Kontribusi dan dokumentasi lanjutan tersedia di masing-masing folder.
+
+## Tampilan Aplikasi
+![1763820936897](https://github.com/user-attachments/assets/b063765e-cb62-4b5b-984b-a7020305e126)
