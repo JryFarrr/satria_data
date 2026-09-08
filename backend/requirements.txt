@@ -12,7 +12,7 @@ python-multipart
 pandas 
 pytube
 crawlee
-google-generativeai
+google-genai
 wordcloud
 matplotlib
 librosa

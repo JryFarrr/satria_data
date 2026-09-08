@@ -525,22 +525,21 @@ class DatasetVisualizationService:
             df_view["waktu_post_manual"], categories=waktu_order, ordered=True
         )
 
-        def remove_outliers(group: pd.DataFrame) -> pd.DataFrame:
-            q1 = group["view_count"].quantile(0.25)
-            q3 = group["view_count"].quantile(0.75)
+        def calc_view_mask(series: pd.Series) -> pd.Series:
+            q1 = series.quantile(0.25)
+            q3 = series.quantile(0.75)
             iqr = q3 - q1
-            lower_bound = max(0, q1 - 1.5 * iqr)
+            lower_bound = max(0.0, q1 - 1.5 * iqr)
             upper_bound = q3 + 1.5 * iqr
-            return group[
-                (group["view_count"] >= lower_bound)
-                & (group["view_count"] <= upper_bound)
-            ]
+            return (series >= lower_bound) & (series <= upper_bound)
 
-        df_no_outliers = (
-            df_view.groupby("day", group_keys=False, observed=True)
-            .apply(remove_outliers)
-            .reset_index(drop=True)
+        mask = (
+            df_view.groupby("day", observed=True)["view_count"]
+            .transform(calc_view_mask)
+            .fillna(False)
+            .astype(bool)
         )
+        df_no_outliers = df_view[mask].reset_index(drop=True)
 
         if df_no_outliers.empty:
             raise DatasetEmptyError(
@@ -896,22 +895,21 @@ class DatasetVisualizationService:
             df_like["waktu_post_manual"], categories=waktu_order, ordered=True
         )
 
-        def remove_outliers(group: pd.DataFrame) -> pd.DataFrame:
-            q1 = group["like_percentage"].quantile(0.25)
-            q3 = group["like_percentage"].quantile(0.75)
+        def calc_like_mask(series: pd.Series) -> pd.Series:
+            q1 = series.quantile(0.25)
+            q3 = series.quantile(0.75)
             iqr = q3 - q1
-            lower_bound = max(0, q1 - 1.5 * iqr)
+            lower_bound = max(0.0, q1 - 1.5 * iqr)
             upper_bound = q3 + 1.5 * iqr
-            return group[
-                (group["like_percentage"] >= lower_bound)
-                & (group["like_percentage"] <= upper_bound)
-            ]
+            return (series >= lower_bound) & (series <= upper_bound)
 
-        df_no_outliers = (
-            df_like.groupby("day", group_keys=False, observed=True)
-            .apply(remove_outliers)
-            .reset_index(drop=True)
+        mask = (
+            df_like.groupby("day", observed=True)["like_percentage"]
+            .transform(calc_like_mask)
+            .fillna(False)
+            .astype(bool)
         )
+        df_no_outliers = df_like[mask].reset_index(drop=True)
 
         if df_no_outliers.empty:
             raise DatasetEmptyError(
@@ -1303,23 +1301,23 @@ class DatasetVisualizationService:
             df_pc["waktu_post_manual"], categories=waktu_order, ordered=True
         )
 
-        def remove_outliers(group: pd.DataFrame) -> pd.DataFrame:
-            q1 = group["PC1_scaled"].quantile(0.25)
-            q3 = group["PC1_scaled"].quantile(0.75)
-            iqr = q3 - q1
-            lower_bound = max(0, q1 - 1.5 * iqr)
-            upper_bound = q3 + 1.5 * iqr
-            return group[
-                (group["PC1_scaled"] >= lower_bound)
-                & (group["PC1_scaled"] <= upper_bound)
-            ]
+        df_pc_valid = df_pc.dropna(subset=["PC1_scaled"]).copy()
 
-        df_no_outliers = (
-            df_pc.dropna(subset=["PC1_scaled"])
-            .groupby("day", group_keys=False, observed=True)
-            .apply(remove_outliers)
-            .reset_index(drop=True)
+        def calc_pc_mask(series: pd.Series) -> pd.Series:
+            q1 = series.quantile(0.25)
+            q3 = series.quantile(0.75)
+            iqr = q3 - q1
+            lower_bound = max(0.0, q1 - 1.5 * iqr)
+            upper_bound = q3 + 1.5 * iqr
+            return (series >= lower_bound) & (series <= upper_bound)
+
+        mask = (
+            df_pc_valid.groupby("day", observed=True)["PC1_scaled"]
+            .transform(calc_pc_mask)
+            .fillna(False)
+            .astype(bool)
         )
+        df_no_outliers = df_pc_valid[mask].reset_index(drop=True)
 
         if df_no_outliers.empty:
             raise DatasetEmptyError(

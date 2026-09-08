@@ -31,8 +31,7 @@ function toDateTimeLocalInput(date: Date) {
 
 function createDefaultFiltersState(): AnalyticsFiltersState {
   const now = new Date();
-  const from = new Date(now);
-  from.setFullYear(from.getFullYear() - 1);
+  const from = new Date(2020, 0, 1, 0, 0, 0);
 
   return {
     postCreatedFrom: toDateTimeLocalInput(from),

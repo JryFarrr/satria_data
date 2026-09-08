@@ -4,7 +4,7 @@ import asyncio
 import json
 from typing import List
 
-import google.generativeai as genai
+from google import genai
 
 from app.config import Settings
 from app.models import ChapterItem, ChapterRequest
@@ -68,7 +68,7 @@ class ChapterGenerationService:
         api_key = (settings.genai_api_key or "").strip()
         if not api_key:
             raise ChapterGenerationError("GENAI_API_KEY belum dikonfigurasi.")
-        genai.configure(api_key=api_key)
+        self._client = genai.Client(api_key=api_key)
         self._model_name = settings.genai_model.strip() or "models/gemini-2.5-pro"
 
     async def generate(self, request: ChapterRequest) -> List[ChapterItem]:
@@ -77,10 +77,13 @@ class ChapterGenerationService:
             "[PASTE SELURUH OBJEK JSON TRANSKRIP ANDA DI SINI]", payload
         )
 
-        model = genai.GenerativeModel(self._model_name)
-        response = await asyncio.to_thread(model.generate_content, prompt)
+        response = await asyncio.to_thread(
+            self._client.models.generate_content,
+            model=self._model_name,
+            contents=prompt,
+        )
 
-        content = getattr(response, "text", "") if response else ""
+        content = response.text if response else ""
         cleaned = content.strip().replace("```json", "").replace("```", "").strip()
         if not cleaned:
             raise ChapterGenerationError("Model tidak mengembalikan respons apa pun.")

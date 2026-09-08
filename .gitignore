@@ -39,5 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
+semifinal.zip
 dataset/
+video-demo-satria data.mov
+*.mov
+*.mp4
